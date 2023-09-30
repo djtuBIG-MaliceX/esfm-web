@@ -16,11 +16,12 @@
 
 /* MIDI */
 
-PATCHMEM m_patches = {
-    0 // TODO populate with bnk_common.bin
-};
+// PATCHMEM m_patches = {
+//     0 // TODO populate with bnk_common.bin
+// };
 
-uint8_t * gBankMem = &m_patches; // TODO hardcode patches as header import
+//uint8_t * gBankMem = &m_patches; // TODO hardcode patches as header import
+#define gBankMem GetGlobalBankMemory()
 //extern void  fmwrite (uint32_t wAddress, uint8_t bValue);
 #define fmwrite(a,b) ESFM_write_reg_buffered(getESFMuObject(), a,b)
 
@@ -199,6 +200,8 @@ void  MidiMessage (uint32_t dwData)
     bChannel = (uint8_t) dwData & (uint8_t)0x0f;
     data2 = (uint8_t) (dwData >> 16) & (uint8_t)0x7f;
     data1 = (uint8_t) ((uint32_t) dwData >> 8) & (uint8_t)0x7f;
+
+    //printf("Debug MIDI: ch %d, data2 %d, data1 %d\n", bChannel, data2, data1);
 
     switch ((uint8_t)dwData & 0xf0) {
         case 0x90:
@@ -450,6 +453,7 @@ void note_on(uint8_t bChannel, uint8_t bNote, uint8_t bVelocity)
     else
         patch = program_table[bChannel];
     offset = gBankMem[2 * patch] + ((int)gBankMem[2 * patch + 1] << 8);
+    //printf("Debug: note on patch offset %x\n", offset);
     if ( offset )
     {
         flags_voice1 = gBankMem[offset];

@@ -7,6 +7,9 @@ void Initialize()
 {
    InitWaveOut();
    StartWaveOut();
+
+   LoadBank();
+   fmreset();
 }
 
 void Reset()
@@ -21,6 +24,7 @@ void WriteMidiData(uint32_t dwData)
    //    //std::cout << "WriteMidiData(" << dwData << ")" << std::endl;
    //    instance->WriteMidiData(dwData);
    // }
+   //printf("Debug MIDI Test: %x\n", dwData);
    MidiMessage(dwData);
 }
 

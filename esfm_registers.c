@@ -51,6 +51,7 @@
  */
 
 #include "esfm.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
@@ -758,6 +759,8 @@ ESFM_write_reg_buffered (esfm_chip *chip, uint16_t address, uint8_t data)
 {
 	uint64_t timestamp;
 	esfm_write_buf *new_entry, *last_entry;
+
+	//printf("DEBUG: write reg test %p, %d, %d\n", chip, address, data);
 
 	new_entry = &chip->write_buf[chip->write_buf_end];
 	last_entry = &chip->write_buf[(chip->write_buf_end - 1) % ESFM_WRITEBUF_SIZE];
