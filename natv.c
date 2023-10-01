@@ -3,7 +3,9 @@
     natv.c - native Soundcard functions
 
 
-    Copyright (c) 2023, leecher@dose.0wnz.at  All Rights Reserved.
+    Copyright (c) 2023, 
+        leecher@dose.0wnz.at  All Rights Reserved.
+        dj.tuBIG/MaliceX, hax my anus
 
 *******************************************************************/
 
@@ -15,15 +17,9 @@
 /* --- typedefs ----------------------------------------------- */
 
 /* MIDI */
-
-// PATCHMEM m_patches = {
-//     0 // TODO populate with bnk_common.bin
-// };
-
-//uint8_t * gBankMem = &m_patches; // TODO hardcode patches as header import
+// hax my anus
 #define gBankMem GetGlobalBankMemory()
-//extern void  fmwrite (uint32_t wAddress, uint8_t bValue);
-#define fmwrite(a,b) ESFM_write_reg_buffered(getESFMuObject(), a,b)
+#define fmwrite(a,b) ESFM_write_reg_buffered_fast(getESFMuObject(), a,b)
 
 /* transformation of linear velocity value to
         logarithmic attenuation */

@@ -68,8 +68,8 @@ int CloseWaveOut() {
 	return 0;
 }
 
-void LoadBank() {
-    FILE *fp = fopen("banks/bnk_common.bin", "rb");
+void LoadBank(const char *bankName) {
+    FILE *fp = fopen(bankName, "rb");
     fseek(fp, 0, SEEK_END);
     size_t dwSize = ftell(fp);
     uint8_t *lpMem = malloc(dwSize);

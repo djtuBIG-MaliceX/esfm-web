@@ -1,152 +1,173 @@
 <!DOCTYPE html>
 <html>
-   <head>
-      <title>Test</title>
-      <script type="text/javascript" src="a.out.js"></script>
-      
-      <script type="text/javascript">
-         
-         var WriteMidiData = Module.cwrap('WriteMidiData', null, ['number'])
-         var GetSample = Module.cwrap('GetSample', null, ['number', 'number']);
-         var GetSampleTwo = Module.cwrap('GetSampleTwo', null, ['number', 'number', 'number', 'number']);
-         var Reset = Module.cwrap('Reset', null, []);
-         var Initialize = Module.cwrap('Initialize', null, ['number']);
-         
-         function testChord()
-         {
-            // major chord
-            WriteMidiData(0x7F4090);
-            WriteMidiData(0x7F4490);
-            WriteMidiData(0x7F4790);
-            
-            // note off
-            setTimeout(function() {
-               WriteMidiData(0x004080);
-               WriteMidiData(0x004480);
-               WriteMidiData(0x004780);
-            
-            }, 5000);
-         }
-         // Fix up for prefixing
-         window.AudioContext = window.AudioContext||window.webkitAudioContext;
-         var context = null;
-      
-         function success(midi)
-         {
-            console.log('Got midi!', midi);
-          
-            var inputs = midi.inputs.values();
-          
-            for (var input = inputs.next(); input && !input.done; input = inputs.next())
-            {
-               // each time there is a midi message call the onMIDIMessage function
-               input.value.onmidimessage = onMIDIMessage;
-            }
-         }
-       
-         function failure()
-         {
-            console.error('No access to your midi devices.')
-         }
+  <head>
+    <title>Test</title>
+    <script type="text/javascript" src="a.out.js"></script>
 
-         function onMIDIMessage (message) {
-            //console.log(message);
-          
-            var n = message.data[0] | (message.data[1]<<8) | (message.data[2]<<16);
-            //var n = message.data[0] + (message.data[1]<<8) + (message.data[2]<<16);
-            //console.log(n);
-          
+    <script type="text/javascript">
+      var WriteMidiData = Module.cwrap("WriteMidiData", null, ["number"]);
+      var GetSample = Module.cwrap("GetSample", null, ["number", "number"]);
+      var GetSampleTwo = Module.cwrap("GetSampleTwo", null, [
+        "number",
+        "number",
+        "number",
+        "number",
+      ]);
+      var Reset = Module.cwrap("Reset", null, []);
+      var Initialize = Module.cwrap("Initialize", null, ["number"]);
+      var ReloadBank = Module.cwrap("ReloadBank", null, ["string"]);
+
+      function testChord() {
+        // major chord
+        WriteMidiData(0x7f4090);
+        WriteMidiData(0x7f4490);
+        WriteMidiData(0x7f4790);
+
+        // note off
+        setTimeout(function () {
+          WriteMidiData(0x004080);
+          WriteMidiData(0x004480);
+          WriteMidiData(0x004780);
+        }, 5000);
+      }
+
+      // TODO: change to non-deprecated WebAudio API (worklets or something)
+      window.AudioContext = window.AudioContext || window.webkitAudioContext;
+      var context = null;
+
+      function success(midi) {
+        console.log("Got midi!", midi);
+        let inputs = midi.inputs.values();
+
+        for (
+          let input = inputs.next();
+          input && !input.done;
+          input = inputs.next()
+        ) {
+          // each time there is a midi message call the onMIDIMessage function
+          input.value.onmidimessage = function (message) {
+            let n = message.data[0] | (message.data[1] << 8) | (message.data[2] << 16);
             WriteMidiData(n);
-         }
-         
-         //Module['onRuntimeInitialized'] = function() {
-		 function Fire() {
-			if (context == null) {
-				context = new AudioContext({ sampleRate: 49716 } )
-				// start opl3 synth
-				//ccall('Initialize');
-				Initialize();
-				
-				// webaudio api buffer
-				var channels = 2;
-				//var frameCount = 2048; // lol higher buffer = instant swing quantize lel
-				//var scriptNode = context.createScriptProcessor();//(frameCount/2, 1, channels);
-				var scriptNode = context.createScriptProcessor(512, 0, channels);
-				var frameCount = scriptNode.bufferSize;
-				// emscripten malloc
-				var nDataBytes = frameCount * 2; //dataBuf.length * dataBuf.BYTES_PER_ELEMENT;
-				var dataPtr = Module._malloc(nDataBytes);
-				var dataHeap = new Int16Array(Module.HEAP16.buffer, dataPtr, nDataBytes);
-				
-				// rendering
-				scriptNode.onaudioprocess = function(evt) {
-				   
-				   // sample everyting sequentially i*increment*4 since pointer address refers to 16-bit sample streams per frame
-				   /*
-				   var ptrStart = dataHeap.byteOffset;
-				   var incr = 64;
-				   //debugger;
-				   for (let offs = 0, i=0; offs < frameCount; i++, offs+=incr) {
-				      GetSample((dataHeap.byteOffset+(i*incr*4)), incr);
-				   }
-				   */
-				   
-				   // per frameSize chunk. lots of processing quantization rendering this way however...
-				   GetSample(dataHeap.byteOffset, frameCount);
-				   
-				   //var result = new Int16Array(dataHeap.buffer, dataHeap.byteOffset, nDataBytes);
-				   var outBuf = evt.outputBuffer;
+          };
+        }
+      }
 
-				   // Interleave samples - LRLRLRLR
-				   let chLData = outBuf.getChannelData(0);
-				   let chRData = outBuf.getChannelData(1);
-				   
-				   
-				   for (var i = 0, j = 0; i < dataHeap.length; i++)
-				   {  
-					  //var n = dataHeap2[i];
-					  var n = Number.parseFloat(dataHeap[i] / 32768.0);
-					  //var n = Number.parseFloat(result[i] / 32768.0);
-					  //if (n<-1) n=-1;
-					  //else if (n>1) n=1;
-					  
-					  if (i&1!=0)
-						 chLData[j] = n;
-					  else
-					  {
-						 chRData[j++] = n;
-					  }
-					  
-				   }
-				};
-				scriptNode.connect(context.destination);
-				
-				
-				if (navigator.requestMIDIAccess)
-				{
-				   console.log('Browser supports MIDI!');
-				   navigator.requestMIDIAccess().then(success, failure);
-				}
-				
-				document.querySelectorAll('input.init').forEach(i => i.disabled = true);
-				document.querySelectorAll('input.control').forEach(i => i.disabled = false);
-			}
-         }
-         
-         
-      </script>
-      
-   </head>
-   <body>
-      <div>
-         ESFMu Test bench - webMIDI.<br/>
-		 <em>Tip: Use loopMIDI or other MIDI input device to drive this thing.</em>
-      </div>
-      <div>
-         <input class="init" type="button" onclick="Fire()" value="Init" />
-         <input class="control" type="button" onclick="testChord()" value="Test chord" disabled />
-         <input class="control" type="button" onclick="Reset()" value="Reset" disabled />
-         <input class="control" type="button" onclick="testChord()" value="moo" disabled />
-      </div>
-   </body>
+      function failure() {
+        console.error("No access to your midi devices.");
+      }
+
+      function DoReloadBank(e) {
+        console.log(`Load sound bank ${e.value}`);
+        ReloadBank(e.value);
+      }
+
+      //Module['onRuntimeInitialized'] = function() {
+      function Fire() {
+        if (context == null) {
+          context = new AudioContext({ sampleRate: 49716 });
+          // start opl3 synth
+          //ccall('Initialize');
+          Initialize();
+
+          // webaudio api buffer
+          var channels = 2;
+          var frameCount = document.querySelector('#bufferSize').value; // lol higher buffer = instant swing quantize lel
+          var scriptNode = context.createScriptProcessor(
+            frameCount,
+            0,
+            channels
+          );
+          var frameCount = scriptNode.bufferSize;
+          // emscripten malloc
+          var nDataBytes = frameCount * 2; //dataBuf.length * dataBuf.BYTES_PER_ELEMENT;
+          var dataPtr = Module._malloc(nDataBytes);
+          var dataHeap = new Int16Array(
+            Module.HEAP16.buffer,
+            dataPtr,
+            nDataBytes
+          );
+
+          // rendering
+          scriptNode.onaudioprocess = function (evt) {
+            // sample everyting sequentially i*increment*4 since pointer address refers to 16-bit sample streams per frame
+            var ptrStart = dataHeap.byteOffset;
+            var incr = 64;
+            for (let offs = 0, i = 0; offs < frameCount; i++, offs += incr) {
+              GetSample(dataHeap.byteOffset + i * incr * 4, incr);
+            }
+
+            // per frameSize chunk. lots of processing quantization rendering this way however...
+            //GetSample(dataHeap.byteOffset, frameCount);
+
+            //var result = new Int16Array(dataHeap.buffer, dataHeap.byteOffset, nDataBytes);
+            var outBuf = evt.outputBuffer;
+
+            // Interleave samples - LRLRLRLR
+            let chLData = outBuf.getChannelData(0);
+            let chRData = outBuf.getChannelData(1);
+
+            for (var i = 0, j = 0; i < dataHeap.length; i++) {
+              var n = Number.parseFloat(dataHeap[i] / 32768.0);
+
+              if (i & (1 != 0)) {
+                chLData[j] = n;
+              } else {
+                chRData[j++] = n;
+              }
+            }
+          };
+          scriptNode.connect(context.destination);
+
+          // Connect webMIDI input API
+          if (navigator.requestMIDIAccess) {
+            console.log("Browser supports MIDI!");
+            navigator.requestMIDIAccess().then(success, failure);
+          }
+
+          document
+            .querySelectorAll(".init")
+            .forEach((i) => (i.disabled = true));
+          document
+            .querySelectorAll(".control")
+            .forEach((i) => (i.disabled = false));
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div>
+      ESFMu Test bench - webMIDI.<br />
+      <em>Tip: Use loopMIDI or other MIDI input device to drive this thing.</em>
+    </div>
+    <div>
+      <label for="bufferSize">Buffer size:</label>
+	  <select id="bufferSize" class="init">
+		<option value="256">256</option>
+		<option value="512" selected>512</option>
+		<option value="1024">1024</option>
+		<option value="2048">2046</option>
+		<option value="4096">4096</option>
+		<option value="8192">8192</option>
+		<option value="16384">16384</option>
+	  </select>
+	  
+	  <input class="init" type="button" onclick="Fire()" value="Init" /><br/>
+      <input class="control" type="button" onclick="testChord()" value="Test chord" disabled />
+      <input class="control" type="button" onclick="Reset()" value="Reset" disabled />
+    </div>
+    <div>
+      <label for="esfmBankSelect">Load bank:</label>
+      <select id="esfmBankSelect" class="control" onchange="DoReloadBank(this);" disabled>
+        <option value="banks/bnk_common.bin">bnk_common</option>
+        <option value="banks/bnk_NT4.bin">bnk_NT4</option>
+        <option value="banks/djtBMX.bin">djtBMX (WIP)</option>
+      </select>
+    </div>
+	<hr />
+	<h6>Links</h6>
+	<ul>
+		<li><a href="https://github.com/Kagamiin/ESFMu">ESFMu</a> - ESS ESFM software core (thx Kagamiin~)</li>
+		<li><a href="https://github.com/leecher1337/esfmbank">ESFMBank</a> - Windows-only ESFM bank editor (thx leecher1337)</li>
+	</ul>
+  </body>
 </html>

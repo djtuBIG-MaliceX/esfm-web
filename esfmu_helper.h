@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include "esfm.h"
+#include "extern/ESFMu/esfm.h"
 #include "esfmregs.h"
 
 // Fucking disgusting hax to make the same ESFMu object visible across all files
@@ -18,7 +18,7 @@ void RenderingThread(void *arg);
 int InitWaveOut();
 int StartWaveOut();
 int CloseWaveOut();
-void LoadBank();
+void LoadBank(const char *bankName);
 uint8_t* GetGlobalBankMemory();
 
 #endif
