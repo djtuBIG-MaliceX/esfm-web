@@ -5,7 +5,7 @@
 #include "natv.h"
 
 
-static uint8_t audioThreadStack[16384];
+static uint8_t audioThreadStack[4096];
 static EMSCRIPTEN_WEBAUDIO_T context;
 static bool isAudioStarted = false;
 
@@ -28,12 +28,20 @@ EM_BOOL GenerateRender(int numInputs, const AudioSampleFrame *inputs,
                        int numParams, const AudioParamFrame *params,
                        void *userData)
 {
-   static short buf[256];
+   static short buf[256];   // hardcoded 128 samples x numChannels (2)
 
-   GetSample(buf, 256);
-   for(int i = 0; i < 128*outputs[0].numberOfChannels; i+=2)
+   Render(buf, 128); // AudioWorklet only renders 128 samples at a time
+   float *chLData = &(outputs[0].data[0]);
+   float *chRData = &(outputs[0].data[128]);
+
+   for(int i = 0, j = 0; i < 256; ++i)
    {
-      outputs[0].data[i] = buf[i];
+      float n = (float)buf[i] / 32768.0f;
+      if ((i&1) != 0) {
+         chLData[j] = n;
+      } else {
+         chRData[j++] = n;
+      }
    }
 
   return EM_TRUE; // Keep the graph output going
@@ -43,7 +51,7 @@ void AudioWorkletProcessorCreated(EMSCRIPTEN_WEBAUDIO_T audioContext, EM_BOOL su
 {
   if (!success) return; // Check browser console in a debug build for detailed errors
 
-  int outputChannelCounts[2] = { 1, 2 };
+  int outputChannelCounts[1] = { 2 };
   EmscriptenAudioWorkletNodeCreateOptions options = {
     .numberOfInputs = 0,
     .numberOfOutputs = 1,
@@ -78,7 +86,9 @@ void Initialize()
    if (!isAudioStarted) {
       InitWaveOut();
       StartWaveOut();
-      context = emscripten_create_audio_context(0);
+      //static EmscriptenWebAudioCreateAttributes attrs = {"interactive", 49716};
+      static EmscriptenWebAudioCreateAttributes attrs = {"playback", 49716};
+      context = emscripten_create_audio_context(&attrs);
       emscripten_start_wasm_audio_worklet_thread_async(context, audioThreadStack, sizeof(audioThreadStack),
                                                    &AudioThreadInitialized, 0);
       isAudioStarted = true;

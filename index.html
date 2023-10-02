@@ -64,7 +64,7 @@
           //ccall('Initialize');
           Initialize();
           
-          /*
+          /* deprecated API
           // webaudio api buffer
           var channels = 2;
           var frameCount = document.querySelector('#bufferSize').value; // lol higher buffer = instant swing quantize lel
@@ -136,18 +136,20 @@
       ESFMu Test bench - webMIDI.<br />
       <em>Tip: Use loopMIDI or other MIDI input device to drive this thing.</em>
     </div>
+    <!-- no effect for AudioWorklet-->
+    <!--
     <div>
       <label for="bufferSize">Buffer size:</label>
-	  <select id="bufferSize" class="init">
-		<option value="256">256</option>
-		<option value="512" selected>512</option>
-		<option value="1024">1024</option>
-		<option value="2048">2046</option>
-		<option value="4096">4096</option>
-		<option value="8192">8192</option>
-		<option value="16384">16384</option>
+      <select id="bufferSize" class="init">
+      <option value="256">256</option>
+      <option value="512" selected>512</option>
+      <option value="1024">1024</option>
+      <option value="2048">2046</option>
+      <option value="4096">4096</option>
+      <option value="8192">8192</option>
+      <option value="16384">16384</option>
 	  </select>
-	  
+    -->
 	  <input class="init" type="button" onclick="Fire()" value="Init" /><br/>
       <input class="control" type="button" onclick="testChord()" value="Test chord" disabled />
       <input class="control" type="button" onclick="Reset()" value="Reset" disabled />
